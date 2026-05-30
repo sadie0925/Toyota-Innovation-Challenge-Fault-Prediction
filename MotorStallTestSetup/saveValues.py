@@ -2,8 +2,8 @@ import serial
 import matplotlib.pyplot as plt
 import csv
 
-filename = 'data/motor_data.csv'
-ser = serial.Serial('COM10', 115200)
+filename = 'motor_data.csv'
+ser = serial.Serial('COM3', 115200)
 ser.reset_input_buffer()
 
 times = []  
