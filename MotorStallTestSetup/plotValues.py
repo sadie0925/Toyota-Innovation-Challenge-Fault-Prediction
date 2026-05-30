@@ -3,7 +3,7 @@ import matplotlib.ticker as ticker
 import numpy as np
 import csv
 
-filename = 'data/motor_data.csv'
+filename = 'motor_data.csv'
 
 x_data, y_data = [], []
 
@@ -52,5 +52,5 @@ ax.yaxis.set_major_locator(ticker.MaxNLocator(8))
 ax.grid(True, linestyle='--', alpha=0.5)
 
 plt.tight_layout()
-plt.savefig('plots/plot.png')
+plt.savefig('plot.png')
 plt.show()
