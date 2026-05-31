@@ -1,5 +1,3 @@
-"""Serial data collection from Arduino motor stall test setup."""
-
 from __future__ import annotations
 
 import argparse
@@ -10,7 +8,6 @@ from pathlib import Path
 import serial
 
 from .config import RAW_DIR
-
 
 def collect_serial(
     port: str,

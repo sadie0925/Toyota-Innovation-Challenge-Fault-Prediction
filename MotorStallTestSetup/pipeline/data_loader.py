@@ -1,5 +1,3 @@
-"""Load motor current CSV files (time_us, current_A or compatible formats)."""
-
 from __future__ import annotations
 
 from pathlib import Path

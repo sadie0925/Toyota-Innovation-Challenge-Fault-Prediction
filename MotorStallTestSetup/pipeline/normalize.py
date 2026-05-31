@@ -1,5 +1,3 @@
-"""Feature normalization (fit on train, apply everywhere)."""
-
 from __future__ import annotations
 
 import json

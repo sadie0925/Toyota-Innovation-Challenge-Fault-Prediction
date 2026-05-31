@@ -1,5 +1,3 @@
-"""2-layer LSTM: stall risk probability + time-to-stall regression."""
-
 from __future__ import annotations
 
 import torch

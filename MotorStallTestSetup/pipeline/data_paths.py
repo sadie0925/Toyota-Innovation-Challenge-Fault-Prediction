@@ -1,10 +1,19 @@
-"""Discover motor CSV datasets for training and inference."""
-
 from __future__ import annotations
 
 from pathlib import Path
 
 from .config import BASE_DIR
+
+
+def discover_training_paths(base_dir: Path | None = None) -> list[Path]:
+    """All CSVs under normal_motor_tests/ and stall_motor_tests/ for training."""
+    base_dir = base_dir or BASE_DIR
+    paths: list[Path] = []
+    for sub in ("normal_motor_tests", "stall_motor_tests"):
+        d = base_dir / sub
+        if d.is_dir():
+            paths.extend(sorted(d.glob("*.csv")))
+    return paths
 
 
 def discover_motor_data_paths(base_dir: Path | None = None) -> list[Path]:

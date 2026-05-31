@@ -1,5 +1,3 @@
-"""Generate results summary and dashboard for the challenge deliverables."""
-
 from __future__ import annotations
 
 import json

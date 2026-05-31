@@ -1,5 +1,3 @@
-"""Feature engineering: resampling, spikes, rolling stats, trend."""
-
 from __future__ import annotations
 
 import numpy as np
@@ -43,14 +41,6 @@ def detect_spikes(
     spike_cfg: SpikeConfig,
     hz: float,
 ) -> pd.DataFrame:
-    """Mark brief anomaly spikes (not sustained stalls).
-
-    Spike = current above rolling baseline + multiplier * noise AND above
-    min_spike_a, sustained for less than min_stall_duration_s.
-    Sustained excursions are treated as stall-like activity, not spikes.
-    The first spike in each recording is ignored (motor startup).
-    Labels use stall_times.json only; spike_flag is for features/plots.
-    """
     out = df.copy()
     window = max(int(spike_cfg.baseline_window_s * hz), 3)
     baseline = out["current_a"].rolling(window, min_periods=1).median()
@@ -116,7 +106,6 @@ def add_features(
 
 
 def _slope_series(series: pd.Series, window: int) -> pd.Series:
-    """Vectorized rolling linear slope (faster than rolling.apply)."""
     y = series.values.astype(float)
     n = len(y)
     out = np.zeros(n, dtype=float)

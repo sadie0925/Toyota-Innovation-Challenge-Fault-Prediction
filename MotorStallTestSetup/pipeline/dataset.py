@@ -1,5 +1,3 @@
-"""Build LSTM windows from current history; session-based train/val/test split."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
