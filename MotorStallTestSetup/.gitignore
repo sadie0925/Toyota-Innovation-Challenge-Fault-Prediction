@@ -15,3 +15,13 @@ data/outputs/
 *.xz
 .venv/
 *.xz
+*.xz
+*.csv
+*.pth
+*.npy
+*.npz
+.venv/
+data/processed/
+data/models/
+data/outputs/
+__pycache__/
