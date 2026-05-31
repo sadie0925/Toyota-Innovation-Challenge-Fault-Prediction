@@ -1,0 +1,51 @@
+{
+  "_instructions": "stall_periods_ms = when motor is stalled [start_ms, end_ms] from recording start. Warning labels = warning_window_s before each period start.",
+  "warning_window_s": 5.0,
+  "files": {
+    "motor_data_stall.csv": {
+      "stall_periods_ms": [
+        [15000, 17000],
+        [23000, 34000],
+        [36000, 46000]
+      ]
+    },
+     "motor_data_stall2.csv": {
+      "stall_periods_ms": [
+        [7000, 14000],
+        [18440, 29000],
+        [31700, 40328],
+        [46000, 58000],
+        [68800, 117000]
+      ]
+    },
+        "motor_data_stall_increase.csv": {
+        "stall_periods_ms": [
+            [13500, 22400],
+            [28400, 42200],
+            [46400, 62250],
+            [66500, 78200],
+            [81600, 94500]
+        ]
+    },
+        "motor_data_stall_noise.csv": {
+        "stall_periods_ms": [
+            [15200 , 25940],
+            [41200, 56000],
+            [67100, 80160],
+            [89820, 103900],
+        ]
+  },
+    "motor_data1.csv": {
+      "stall_periods_ms": [
+        [12700,16800],
+        [39750, 49000]
+      ]
+    },
+        "motor_data_stall_new.csv": {
+        "stall_periods_ms": [
+            [14053, 24200],
+            [36070, 47620]        ]
+        }
+
+}
+}

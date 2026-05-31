@@ -11,6 +11,25 @@ from .config import BASE_DIR
 STALL_TIMES_PATH = BASE_DIR / "stall_times.json"
 
 
+def merge_stall_periods(
+    periods: list[tuple[float, float]],
+    cooldown_s: float,
+) -> list[tuple[float, float]]:
+    """Merge periods when gap (next_start - prev_end) <= cooldown_s."""
+    if not periods or cooldown_s <= 0:
+        return list(periods)
+
+    ordered = sorted((float(a), float(b)) for a, b in periods)
+    merged: list[list[float]] = [[ordered[0][0], ordered[0][1]]]
+    for start, end in ordered[1:]:
+        prev_end = merged[-1][1]
+        if start - prev_end <= cooldown_s:
+            merged[-1][1] = max(prev_end, end)
+        else:
+            merged.append([start, end])
+    return [(a, b) for a, b in merged]
+
+
 @dataclass
 class FileStallAnnotation:
     stall_periods_s: list[tuple[float, float]]
@@ -36,7 +55,10 @@ def _parse_file_entry(value) -> FileStallAnnotation | None:
     return None
 
 
-def load_stall_annotations(path: Path | None = None) -> tuple[dict[str, FileStallAnnotation], float]:
+def load_stall_annotations(
+    path: Path | None = None,
+    merge_cooldown_s: float | None = None,
+) -> tuple[dict[str, FileStallAnnotation], float]:
     path = path or STALL_TIMES_PATH
     if not path.exists():
         return {}, 5.0
@@ -45,11 +67,15 @@ def load_stall_annotations(path: Path | None = None) -> tuple[dict[str, FileStal
         data = json.load(f)
 
     warning_window_s = float(data.get("warning_window_s", 5.0))
+    if merge_cooldown_s is None:
+        merge_cooldown_s = float(data.get("stall_merge_cooldown_s", 6.5))
+
     annotations: dict[str, FileStallAnnotation] = {}
     for name, value in data.get("files", {}).items():
         parsed = _parse_file_entry(value)
         if parsed:
-            annotations[name] = parsed
+            merged = merge_stall_periods(parsed.stall_periods_s, merge_cooldown_s)
+            annotations[name] = FileStallAnnotation(stall_periods_s=merged)
     return annotations, warning_window_s
 
 

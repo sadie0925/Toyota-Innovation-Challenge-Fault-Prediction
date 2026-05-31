@@ -1,6 +1,7 @@
 {
-  "_instructions": "stall_periods_ms = when motor is stalled [start_ms, end_ms] from recording start. Warning labels = warning_window_s before each period start.",
+  "_instructions": "stall_periods_ms = when motor is stalled [start_ms, end_ms] from recording start. Periods with gap <= stall_merge_cooldown_s are merged into one chunk. Warning labels = warning_window_s before the first chunk start only.",
   "warning_window_s": 5.0,
+  "stall_merge_cooldown_s": 6.5,
   "files": {
     "motor_data_stall.csv": {
       "stall_periods_ms": [

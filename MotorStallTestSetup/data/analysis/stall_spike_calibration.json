@@ -1,0 +1,41 @@
+{
+  "roots": [
+    "/Users/sadiechoi/Desktop/Toyota/S26-Toyota-Innovation-Challenge/Fault_Prediction/MotorStallTestSetup",
+    "/Users/sadiechoi/Desktop/Toyota/S26-Toyota-Innovation-Challenge/Fault_Prediction/MotorStallTestSetup_backup"
+  ],
+  "normal_files": [
+    "rpm_400.csv",
+    "motor_data_normal.csv",
+    "motor_data_normal2.csv",
+    "motor_data_normal3.csv",
+    "rpm_400.csv"
+  ],
+  "stall_files": [
+    "current_sequence_6.csv",
+    "rpm_400.csv",
+    "current_sequence_6.csv",
+    "motor_data1.csv",
+    "motor_data_stall.csv",
+    "motor_data_stall2.csv",
+    "motor_data_stall_increase.csv",
+    "motor_data_stall_noise.csv",
+    "rpm_400.csv"
+  ],
+  "warning_window_s": 5.0,
+  "stall_merge_cooldown_s": 7.13,
+  "annotation_inter_stall_gaps_s": [
+    2.0,
+    6.0
+  ],
+  "auto_inter_stall_gap_p90_s": 36.235,
+  "min_stall_period_duration_s": 0.421,
+  "min_spike_a": 0.0253,
+  "min_stall_duration_s": 0.16,
+  "normal_spike_peak_p50_a": 0.0461,
+  "normal_spike_peak_p99_a": 0.1814,
+  "normal_excursion_duration_p95_s": 0.04,
+  "merged_period_examples": {},
+  "notes": {
+    "spike_vs_stall": "Spikes: brief current excursions above rolling baseline+mult*std with duration < min_stall_duration_s (features only). Stalls: sustained periods from stall_times.json (labels); consecutive periods within stall_merge_cooldown_s are one chunk."
+  }
+}

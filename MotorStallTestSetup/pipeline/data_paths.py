@@ -20,6 +20,18 @@ def discover_motor_data_paths(base_dir: Path | None = None) -> list[Path]:
     if stall_dir.is_dir():
         paths.extend(sorted(stall_dir.glob("*.csv")))
 
+    for sub in ("Data 2/Normal", "Data 2/Stalled"):
+        extra = base_dir / sub
+        if extra.is_dir():
+            paths.extend(sorted(extra.glob("*.csv")))
+
+    backup = base_dir.parent / "MotorStallTestSetup_backup"
+    if not paths and backup.is_dir():
+        for sub in ("normal_motor_tests", "stall_motor_tests"):
+            d = backup / sub
+            if d.is_dir():
+                paths.extend(sorted(d.glob("*.csv")))
+
     if paths:
         return paths
 
