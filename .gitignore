@@ -17,3 +17,7 @@ MotorStallTestSetup_backup/
 *.pth
 *.pkl
 *.npz
+
+*.zip
+
+MotorStallTestSetup_backup/
