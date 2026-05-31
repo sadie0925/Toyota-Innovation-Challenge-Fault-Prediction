@@ -32,7 +32,7 @@ def train_model(
     model_dir = model_dir or MODEL_DIR
     model_dir.mkdir(parents=True, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    max_tts = cfg.label.max_lead_s
+    max_tts = cfg.label.warning_window_s
 
     model = StallLSTM(
         input_size=len(batch.feature_columns),

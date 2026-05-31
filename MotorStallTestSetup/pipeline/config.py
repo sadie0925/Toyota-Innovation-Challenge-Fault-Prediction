@@ -43,7 +43,6 @@ class SanitizeConfig:
 
 @dataclass
 class SpikeConfig:
-    """Spike detection; first spike per session is always ignored (motor startup)."""
     spike_multiplier: float = 3.0
     min_spike_a: float = 0.003
     baseline_window_s: float = 0.5
@@ -51,7 +50,6 @@ class SpikeConfig:
 
 @dataclass
 class LabelConfig:
-    """Phase 2: binary labels from manual stall_time in stall_times.json."""
     warning_window_s: float = 5.0
     stall_times_path: Path = field(default_factory=lambda: STALL_TIMES_PATH)
 

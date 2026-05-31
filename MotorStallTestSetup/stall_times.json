@@ -1,12 +1,13 @@
 {
-  "_instructions": "Phase 1: set stall_time_s (seconds from recording start) when the motor actually stalls. Labels are auto-generated: 0 = far from stall, 1 = within warning_window_s before stall_time.",
+  "_instructions": "stall_periods_ms = when motor is stalled [start_ms, end_ms] from recording start. Warning labels = warning_window_s before each period start.",
   "warning_window_s": 5.0,
   "files": {
-    "motor_data_stall.csv": 50.0,
-    "motor_data_stall2.csv": 112.0,
-    "motor_data_stall_increase.csv": 92.0,
-    "motor_data_stall_noise.csv": 102.0,
-    "motor_data1.csv": 70.0,
-    "current_sequence_6.csv": 385.0
+    "motor_data_stall.csv": {
+      "stall_periods_ms": [
+        [15000, 17000],
+        [23000, 34000],
+        [36000, 46000]
+      ]
+    }
   }
 }

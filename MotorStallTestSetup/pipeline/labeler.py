@@ -1,4 +1,4 @@
-"""Manual stall-time labels (Phase 2): 0 = far from stall, 1 = within warning window."""
+"""Manual stall-period labels (Phase 2): 0 = far, 1 = within warning window before stall."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from .config import FeatureConfig, LabelConfig
-from .stall_times import load_stall_times
+from .stall_times import load_stall_annotations
 
 
 def label_stall_events(
@@ -17,15 +17,7 @@ def label_stall_events(
     file_label: str | None = None,
     source_file: str | None = None,
 ) -> pd.DataFrame:
-    """
-    Phase 2 labels from manual stall_time (Phase 1, see stall_times.json).
 
-    stall_risk = 1  →  within warning_window_s before stall_time
-    stall_risk = 0  →  far from stall, during stall, or after stall
-    Normal files  →  all 0
-
-    Spikes are NOT used for labeling — only your annotated stall_time.
-    """
     label_cfg = label_cfg or LabelConfig()
     feature_cfg = feature_cfg or FeatureConfig()
     out = df.copy()
@@ -40,19 +32,27 @@ def label_stall_events(
     if file_label == "normal":
         pass
     elif source_file:
-        stall_times, warning_window_s = load_stall_times(label_cfg.stall_times_path)
+        annotations, warning_window_s = load_stall_annotations(label_cfg.stall_times_path)
         if label_cfg.warning_window_s is not None:
             warning_window_s = label_cfg.warning_window_s
-        stall_time = stall_times.get(source_file)
-        if stall_time is not None:
-            stall_onset_time_s = float(stall_time)
-            warn_start = stall_time - warning_window_s
+
+        ann = annotations.get(source_file)
+        if ann:
+            periods = ann.stall_periods_s
+            stall_onset_time_s = float(periods[0][0])
+
             for i, t in enumerate(times):
-                if t >= stall_time:
+                in_stall = any(start <= t <= end for start, end in periods)
+                if in_stall:
                     stall_phase[i] = 1
-                elif t >= warn_start:
-                    stall_risk[i] = 1
-                    time_to_stall[i] = float(stall_time - t)
+                    continue
+
+                for start, _end in periods:
+                    warn_start = start - warning_window_s
+                    if warn_start <= t < start:
+                        stall_risk[i] = 1
+                        time_to_stall[i] = float(start - t)
+                        break
 
     out["stall_onset_time_s"] = stall_onset_time_s
     out["stall_risk"] = stall_risk

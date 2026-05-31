@@ -32,7 +32,6 @@ def sanitize(df: pd.DataFrame, cfg: SanitizeConfig | None = None) -> pd.DataFram
 
 
 def _interpolate_batch_gaps(df: pd.DataFrame, cfg: SanitizeConfig) -> pd.DataFrame:
-    """Fill UART batch gaps with linear interpolation instead of leaving time jumps."""
     dt = df["time_us"].diff()
     gap_mask = dt > cfg.max_dt_us // 10
     if not gap_mask.any():

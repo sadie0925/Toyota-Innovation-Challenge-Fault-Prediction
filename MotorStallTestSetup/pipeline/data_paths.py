@@ -8,12 +8,6 @@ from .config import BASE_DIR
 
 
 def discover_motor_data_paths(base_dir: Path | None = None) -> list[Path]:
-    """
-    Load all CSVs from normal_motor_tests/ then stall_motor_tests/.
-
-    Folder placement defines the label (normal vs stalled); filenames are not required
-    to contain "normal" or "stall".
-    """
     base_dir = base_dir or BASE_DIR
     paths: list[Path] = []
 
@@ -29,7 +23,6 @@ def discover_motor_data_paths(base_dir: Path | None = None) -> list[Path]:
     if paths:
         return paths
 
-    # Legacy flat layout (optional fallback)
     legacy = base_dir / "motor_data_tests"
     if legacy.is_dir():
         paths.extend(sorted(legacy.glob("*.csv")))
@@ -43,7 +36,6 @@ def discover_motor_data_paths(base_dir: Path | None = None) -> list[Path]:
 
 
 def pick_stall_file(paths: list[Path]) -> Path:
-    """Pick a stall recording for demo prediction plots."""
     preferred = ("stall", "stalled", "abnormal")
     for p in paths:
         if p.parent.name == "stall_motor_tests" and any(tag in p.name.lower() for tag in preferred):
