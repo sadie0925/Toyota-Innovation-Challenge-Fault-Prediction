@@ -51,12 +51,16 @@ def run_pipeline(
     model_run_dir.mkdir(parents=True, exist_ok=True)
 
     paths = data_paths or default_data_paths()
-    annotations, warning_window = load_stall_annotations(cfg.label.stall_times_path)
+    annotations, warning_window = load_stall_annotations(
+        cfg.label.stall_times_path,
+        merge_cooldown_s=cfg.label.stall_merge_cooldown_s,
+    )
 
     print(f"Run ID: {run_id}")
     print(f"Output dir: {run_dir}")
     print(f"Model dir:  {model_run_dir}")
-    print(f"Warning window: {warning_window}s before each stall period")
+    print(f"Warning window: {warning_window}s before first stall chunk")
+    print(f"Stall merge cooldown: {cfg.label.stall_merge_cooldown_s}s")
     print(f"Processing {len(paths)} file(s)...")
     for p in paths:
         ann = annotations.get(p.name)

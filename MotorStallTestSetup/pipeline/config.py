@@ -44,13 +44,18 @@ class SanitizeConfig:
 @dataclass
 class SpikeConfig:
     spike_multiplier: float = 3.0
-    min_spike_a: float = 0.003
+    # Calibrated from normal_motor_tests (scripts/analyze_stall_gaps_and_spikes.py)
+    min_spike_a: float = 0.025
     baseline_window_s: float = 0.5
+    # Excursions at or above this duration are stall-like, not anomaly spikes
+    min_stall_duration_s: float = 0.16
 
 
 @dataclass
 class LabelConfig:
     warning_window_s: float = 5.0
+    # Gaps between stall periods <= this are merged into one stall chunk
+    stall_merge_cooldown_s: float = 6.5
     stall_times_path: Path = field(default_factory=lambda: STALL_TIMES_PATH)
 
 

@@ -43,7 +43,14 @@ def detect_spikes(
     spike_cfg: SpikeConfig,
     hz: float,
 ) -> pd.DataFrame:
-    """Mark spikes; first spike in each recording is ignored (motor startup)."""
+    """Mark brief anomaly spikes (not sustained stalls).
+
+    Spike = current above rolling baseline + multiplier * noise AND above
+    min_spike_a, sustained for less than min_stall_duration_s.
+    Sustained excursions are treated as stall-like activity, not spikes.
+    The first spike in each recording is ignored (motor startup).
+    Labels use stall_times.json only; spike_flag is for features/plots.
+    """
     out = df.copy()
     window = max(int(spike_cfg.baseline_window_s * hz), 3)
     baseline = out["current_a"].rolling(window, min_periods=1).median()
@@ -55,10 +62,24 @@ def detect_spikes(
 
     raw_spike = (out["current_a"] > threshold).astype(int)
     out["spike_raw"] = raw_spike
+
+    min_samples = max(int(spike_cfg.min_stall_duration_s * hz), 1)
+    brief_spike = np.zeros(len(out), dtype=int)
+    i, n = 0, len(out)
+    while i < n:
+        if raw_spike.iloc[i] == 0:
+            i += 1
+            continue
+        start = i
+        while i < n and raw_spike.iloc[i] == 1:
+            i += 1
+        if (i - start) < min_samples:
+            brief_spike[start:i] = 1
+
+    out["spike_flag"] = brief_spike
     out["startup_spike"] = 0
 
-    first_spike_idx = out.index[raw_spike == 1]
-    out["spike_flag"] = raw_spike.copy()
+    first_spike_idx = out.index[out["spike_flag"] == 1]
     if len(first_spike_idx) > 0:
         out.loc[first_spike_idx[0], "spike_flag"] = 0
         out.loc[first_spike_idx[0], "startup_spike"] = 1

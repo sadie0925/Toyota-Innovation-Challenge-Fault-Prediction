@@ -32,7 +32,10 @@ def label_stall_events(
     if file_label == "normal":
         pass
     elif source_file:
-        annotations, warning_window_s = load_stall_annotations(label_cfg.stall_times_path)
+        annotations, warning_window_s = load_stall_annotations(
+            label_cfg.stall_times_path,
+            merge_cooldown_s=label_cfg.stall_merge_cooldown_s,
+        )
         if label_cfg.warning_window_s is not None:
             warning_window_s = label_cfg.warning_window_s
 
@@ -40,6 +43,7 @@ def label_stall_events(
         if ann:
             periods = ann.stall_periods_s
             stall_onset_time_s = float(periods[0][0])
+            # One warning window before the first chunk only (merged re-stalls)
 
             for i, t in enumerate(times):
                 in_stall = any(start <= t <= end for start, end in periods)
