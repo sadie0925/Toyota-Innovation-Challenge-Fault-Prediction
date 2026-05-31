@@ -3,7 +3,12 @@ import matplotlib.ticker as ticker
 import numpy as np
 import csv
 
-filename = 'motor_data.csv'
+from pathlib import Path
+
+# Use Path object to cleanly resolve paths across Windows, Mac, and Linux
+# Path handles the correct slashes dynamically under the hood!
+filename = Path("stall_motor_tests") / "motor_data1.csv"
+
 
 x_data, y_data = [], []
 
