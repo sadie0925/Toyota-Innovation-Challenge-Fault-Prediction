@@ -1,83 +1,71 @@
 # Motor Stall Prediction Pipeline
 
-LSTM-based time-series pipeline for **single-motor stall prediction** using `time_us` and `current_A` telemetry.
+Predict **will the motor stall within the next 5 seconds?** from recent current telemetry.
 
-## Pipeline Overview
+## Three phases
 
+### Phase 1 — Annotate stall time (manual)
+
+Edit **`stall_times.json`** and set when each stall recording actually stalls:
+
+```json
+{
+  "warning_window_s": 5.0,
+  "files": {
+    "motor_data_stall.csv": 50.0,
+    "motor_data_stall2.csv": 112.0
+  }
+}
 ```
-Serial / CSV  →  Sanitize  →  Features  →  Label  →  Normalize  →  LSTM  →  Predict
-```
 
-| Stage | Module | What it does |
-|-------|--------|--------------|
-| Collect | `pipeline/collect.py` | Stream data from Arduino over serial |
-| Sanitize | `pipeline/sanitize.py` | Drop bad rows, clip current, interpolate UART batch gaps |
-| Features | `pipeline/features.py` | Resample to 100 Hz, detect spikes, rolling stats, trend slope |
-| Label | `pipeline/labeler.py` | Rule-based stall labels (spike bursts, rising trend) |
-| Normalize | `pipeline/normalize.py` | StandardScaler on feature columns |
-| Model | `pipeline/model.py` | 2-layer LSTM binary classifier |
-| Train | `pipeline/train.py` | Train with BCE loss + early stopping |
-| Predict | `pipeline/predict.py` | Output stall probability per timestep |
+Watch the CSV plot, note the second the motor stalls, enter that value.
 
-## Stall Detection Rules
+### Phase 2 — Auto labels
 
-1. **First spike ignored** — represents motor startup inrush, not a fault.
-2. **Spike burst** — multiple spikes within a short window → abnormal / stall precursor.
-3. **Rising trend** — sustained increase in current slope → stall precursor.
-4. **LSTM** — learns temporal patterns from labeled windows to predict stall *before* it happens.
+| Time range | Label | Meaning |
+|------------|-------|---------|
+| `t < stall_time - 5s` | **0** | Far from stall |
+| `stall_time - 5s ≤ t < stall_time` | **1** | Stall within 5 s |
+| `t ≥ stall_time` | **0** (excluded from training) | During / after stall |
 
-## Quick Start
+Normal files → all **0**. **Spikes are not used for labeling.**
+
+### Phase 3 — LSTM classifier
+
+- **Input:** last 100 current samples (~1 s), not timestamps  
+- **Output:** probability of stall within next 5 s  
 
 ```bash
-cd MotorStallTestSetup
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# Run full pipeline (uses all CSVs in motor_data_tests/)
 python run_pipeline.py
 ```
 
-Outputs land in `data/processed/`, `data/models/`, and `data/outputs/`.
+## Outputs (never overwritten)
 
-Training data lives in `motor_data_tests/` — files matching `*normal*.csv` and `*stall*.csv` are picked up automatically.
+Each run saves to a timestamped folder:
 
-## Collect New Data
+```
+data/outputs/run_YYYYMMDD_HHMMSS/
+  metrics.json
+  RESULTS_SUMMARY.md
+  training_history.png
+  dashboard_motor_data_stall.png
+  predictions_motor_data_stall.csv
+  processed_features.csv
 
-```bash
-python -m pipeline.collect --port /dev/ttyUSB0 --label normal
-python -m pipeline.collect --port /dev/ttyUSB0 --label stalled
+data/models/run_YYYYMMDD_HHMMSS/
+  stall_lstm.pt
+  model_meta.json
+  normalizer.joblib
 ```
 
-CSV format: `time_us,current_A`
+## Data layout
 
-## Predict on a Single File
-
-```python
-from pipeline.preprocess import preprocess_file
-from pipeline.predict import predict_dataframe
-
-df = preprocess_file("motor_data_tests/motor_data_stall.csv")
-pred = predict_dataframe(df)
-print(pred[["time_s", "current_a", "stall_probability", "stall_predicted"]].tail())
+```
+normal_motor_tests/   ← all labels = 0
+stall_motor_tests/    ← labels from stall_times.json
+stall_times.json      ← Phase 1 annotations
 ```
 
-## Configuration
+## Why this is better than auto-labeling
 
-Edit thresholds in `pipeline/config.py`:
-
-- `SpikeConfig` — spike sensitivity, startup ignore
-- `LabelConfig` — burst count, trend slope, prediction horizon
-- `ModelConfig` — sequence length, LSTM size, epochs
-
-## Input Format
-
-Your CSV must have:
-
-```csv
-time_us,current_A
-2926687,0.000122
-2927238,0.000122
-```
-
-Compatible aliases (`current_mA`, `elapsed_time`) are auto-converted.
+The old approach **guessed** stall onset from current spikes / file tail → spikes looked like pre-stall → false alarms. Manual `stall_time` gives ground truth for **when** stall happens; the model learns current patterns **before that moment**, not spike shape alone.

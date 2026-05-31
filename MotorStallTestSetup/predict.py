@@ -9,7 +9,7 @@ from pathlib import Path
 from pipeline.config import OUTPUT_DIR
 from pipeline.predict import predict_dataframe
 from pipeline.preprocess import preprocess_file
-from pipeline.visualize import plot_current_with_predictions
+from pipeline.visualize import plot_dashboard
 
 
 def main() -> None:
@@ -24,16 +24,17 @@ def main() -> None:
     pred = predict_dataframe(processed, threshold=args.threshold)
 
     out_csv = args.output_dir / f"predictions_{args.csv.stem}.csv"
-    out_plot = args.output_dir / f"plot_{args.csv.stem}.png"
+    out_plot = args.output_dir / f"dashboard_{args.csv.stem}.png"
     pred.to_csv(out_csv, index=False)
-    plot_current_with_predictions(pred, out_plot, title=f"Stall Prediction — {args.csv.name}")
+    plot_dashboard(pred, out_plot, title=f"Stall Prediction — {args.csv.name}")
 
     alerts = pred[pred["stall_predicted"] == 1]
     print(f"Saved predictions: {out_csv}")
-    print(f"Saved plot: {out_plot}")
-    print(f"Stall alerts: {len(alerts)} / {len(pred)} timesteps")
+    print(f"Saved dashboard: {out_plot}")
+    print(f"Stall warnings: {len(alerts)} / {len(pred)} timesteps")
     if len(alerts):
-        print(alerts[["time_s", "current_a", "stall_probability"]].head(10).to_string(index=False))
+        cols = ["time_s", "current_a", "stall_probability", "time_to_stall_predicted_s", "motor_status"]
+        print(alerts[cols].head(10).to_string(index=False))
 
 
 if __name__ == "__main__":

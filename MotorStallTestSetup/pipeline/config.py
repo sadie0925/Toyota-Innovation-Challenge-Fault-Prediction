@@ -1,15 +1,36 @@
 """Pipeline configuration for single-motor stall prediction."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
-MOTOR_DATA_TESTS_DIR = BASE_DIR / "motor_data_tests"
+NORMAL_MOTOR_TESTS_DIR = BASE_DIR / "normal_motor_tests"
+STALL_MOTOR_TESTS_DIR = BASE_DIR / "stall_motor_tests"
+STALL_TIMES_PATH = BASE_DIR / "stall_times.json"
 RAW_DIR = DATA_DIR / "raw"
 PROCESSED_DIR = DATA_DIR / "processed"
 MODEL_DIR = DATA_DIR / "models"
 OUTPUT_DIR = DATA_DIR / "outputs"
+
+
+def make_run_id() -> str:
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def run_output_dir(base: Path | None = None) -> Path:
+    d = (base or OUTPUT_DIR) / f"run_{make_run_id()}"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def run_model_dir(base: Path | None = None) -> Path:
+    d = (base or MODEL_DIR) / f"run_{make_run_id()}"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
 
 
 @dataclass
@@ -30,36 +51,25 @@ class SpikeConfig:
 
 @dataclass
 class LabelConfig:
-    """Rule-based stall / precursor labeling."""
-    spike_burst_window_s: float = 2.0
-    spike_burst_count: int = 2
-    trend_window_s: float = 1.0
-    trend_slope_threshold: float = 0.005
-    prediction_horizon_s: float = 1.0
-    stall_sustain_s: float = 0.3
-    stall_current_threshold_a: float = 0.02
+    """Phase 2: binary labels from manual stall_time in stall_times.json."""
+    warning_window_s: float = 5.0
+    stall_times_path: Path = field(default_factory=lambda: STALL_TIMES_PATH)
 
 
 @dataclass
 class FeatureConfig:
     resample_hz: float = 100.0
     rolling_window_s: float = 0.2
+    # LSTM input: current history only (timestamps used for ordering/labels only)
+    model_input_column: str = "current_a"
     feature_columns: list[str] = field(
-        default_factory=lambda: [
-            "current_a",
-            "d_current",
-            "rolling_mean",
-            "rolling_std",
-            "spike_flag",
-            "spike_count_window",
-            "trend_slope",
-        ]
+        default_factory=lambda: ["current_a"]
     )
 
 
 @dataclass
 class ModelConfig:
-    sequence_length: int = 50
+    sequence_length: int = 100
     hidden_size: int = 64
     num_layers: int = 2
     dropout: float = 0.2

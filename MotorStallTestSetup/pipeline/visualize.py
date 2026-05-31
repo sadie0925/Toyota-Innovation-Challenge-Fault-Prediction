@@ -1,4 +1,4 @@
-"""Visualization helpers for stall prediction pipeline."""
+"""Plots for stall risk, time-to-stall, and training history."""
 
 from __future__ import annotations
 
@@ -8,61 +8,77 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 
-def plot_current_with_predictions(
+def plot_dashboard(
     df: pd.DataFrame,
     output_path: str | Path,
-    title: str = "Motor Current & Stall Prediction",
+    title: str = "Motor Stall — Predictive Maintenance Dashboard",
 ) -> None:
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    fig, axes = plt.subplots(2, 1, figsize=(14, 7), sharex=True)
+    fig, axes = plt.subplots(4, 1, figsize=(14, 10), sharex=True)
 
-    axes[0].plot(df["time_s"], df["current_a"], color="#2563eb", linewidth=0.8, label="Current (A)")
-    if "spike_flag" in df.columns:
-        spikes = df[df["spike_flag"] == 1]
-        axes[0].scatter(spikes["time_s"], spikes["current_a"], color="#f59e0b", s=8, label="Spike")
-    if "startup_spike" in df.columns:
-        startup = df[df.get("startup_spike", 0) == 1]
-        if len(startup):
-            axes[0].scatter(
-                startup["time_s"],
-                startup["current_a"],
-                color="#10b981",
-                s=20,
-                marker="x",
-                label="Startup spike (ignored)",
-            )
+    axes[0].plot(df["time_s"], df["current_a"], color="#2563eb", linewidth=0.8)
+    if "stall_onset_time_s" in df.columns and (df["stall_onset_time_s"] >= 0).any():
+        axes[0].axvline(
+            df["stall_onset_time_s"].iloc[0],
+            color="#dc2626",
+            linestyle="--",
+            label="Stall onset (label)",
+        )
     axes[0].set_ylabel("Current (A)")
-    axes[0].legend(loc="upper right")
+    axes[0].legend(loc="upper right", fontsize=8)
     axes[0].grid(True, alpha=0.3)
+    axes[0].set_title("Input: current telemetry")
+
+    if "stall_risk_label" in df.columns:
+        axes[1].fill_between(
+            df["time_s"], 0, df["stall_risk_label"], step="pre", alpha=0.35, color="#f59e0b", label="Pre-stall window (label)"
+        )
+    axes[1].set_ylabel("Label")
+    axes[1].set_ylim(-0.05, 1.05)
+    axes[1].legend(loc="upper right", fontsize=8)
+    axes[1].grid(True, alpha=0.3)
+    axes[1].set_title("Ground truth: approaching stall (before onset only)")
 
     if "stall_probability" in df.columns:
-        axes[1].plot(df["time_s"], df["stall_probability"], color="#dc2626", label="Stall probability")
-        axes[1].axhline(0.5, color="gray", linestyle="--", linewidth=0.8, label="Threshold")
-        pred = df[df["stall_predicted"] == 1]
-        if len(pred):
-            axes[1].scatter(pred["time_s"], pred["stall_probability"], color="#dc2626", s=6)
-    elif "stall_imminent" in df.columns:
-        axes[1].fill_between(
+        axes[2].plot(df["time_s"], df["stall_probability"], color="#dc2626", linewidth=0.9, label="Stall risk")
+        axes[2].axhline(0.5, color="gray", linestyle="--", linewidth=0.8)
+        axes[2].set_ylabel("Risk")
+        axes[2].set_ylim(-0.05, 1.05)
+        axes[2].legend(loc="upper right", fontsize=8)
+        axes[2].grid(True, alpha=0.3)
+        axes[2].set_title("Output: stall probability")
+
+    if "time_to_stall_predicted_s" in df.columns:
+        axes[3].plot(
             df["time_s"],
-            0,
-            df["stall_imminent"],
-            step="pre",
-            alpha=0.4,
-            color="#dc2626",
-            label="Stall imminent (label)",
+            df["time_to_stall_predicted_s"],
+            color="#7c3aed",
+            linewidth=0.9,
+            label="Predicted time-to-stall",
         )
-    axes[1].set_xlabel("Time (s)")
-    axes[1].set_ylabel("Stall signal")
-    axes[1].set_ylim(-0.05, 1.05)
-    axes[1].legend(loc="upper right")
-    axes[1].grid(True, alpha=0.3)
+        if "time_to_stall_actual_s" in df.columns:
+            actual = df["time_to_stall_actual_s"].replace(-1, float("nan"))
+            axes[3].plot(df["time_s"], actual, color="#059669", alpha=0.7, linewidth=0.8, label="Actual (label)")
+        axes[3].set_ylabel("Seconds")
+        axes[3].set_xlabel("Time (s)")
+        axes[3].legend(loc="upper right", fontsize=8)
+        axes[3].grid(True, alpha=0.3)
+        axes[3].set_title("Output: estimated time until stall")
 
     fig.suptitle(title)
     fig.tight_layout()
     fig.savefig(output_path, dpi=150)
     plt.close(fig)
+
+
+def plot_current_with_predictions(
+    df: pd.DataFrame,
+    output_path: str | Path,
+    title: str = "Motor Current & Stall Prediction",
+) -> None:
+    plot_dashboard(df, output_path, title)
 
 
 def plot_training_history(history: list[dict], output_path: str | Path) -> None:
@@ -77,7 +93,7 @@ def plot_training_history(history: list[dict], output_path: str | Path) -> None:
     plt.plot(epochs, train_loss, label="Train loss")
     plt.plot(epochs, val_loss, label="Val loss")
     plt.xlabel("Epoch")
-    plt.ylabel("BCE loss")
+    plt.ylabel("Combined loss (risk + time-to-stall)")
     plt.title("LSTM Training History")
     plt.legend()
     plt.grid(True, alpha=0.3)

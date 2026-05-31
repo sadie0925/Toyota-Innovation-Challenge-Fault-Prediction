@@ -1,4 +1,4 @@
-"""Run inference with a trained LSTM stall predictor."""
+"""Inference: stall risk probability + estimated time-to-stall."""
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ def load_trained_model(model_dir: Path | None = None) -> tuple[StallLSTM, Featur
         hidden_size=meta["hidden_size"],
         num_layers=meta["num_layers"],
         dropout=meta["dropout"],
+        max_time_to_stall_s=meta.get("max_time_to_stall_s", 5.0),
     )
     model.load_state_dict(torch.load(model_dir / "stall_lstm.pt", map_location="cpu"))
     model.eval()
@@ -40,12 +41,16 @@ def predict_dataframe(
 ) -> pd.DataFrame:
     cfg = cfg or PipelineConfig()
     model, normalizer, meta = load_trained_model(model_dir)
+    if threshold == 0.5 and "risk_threshold" in meta:
+        threshold = float(meta["risk_threshold"])
 
     feature_cols = meta["feature_columns"]
     seq_len = meta["sequence_length"]
     normalized = normalizer.transform(df)
 
-    x, _ = build_sequences(normalized, feature_cols, "stall_imminent", seq_len)
+    x, y_risk, y_tts, row_idx = build_sequences(
+        normalized, feature_cols, seq_len, risk_col="stall_risk", tts_col="time_to_stall_s"
+    )
     if len(x) == 0:
         raise ValueError("Not enough timesteps for prediction.")
 
@@ -53,10 +58,20 @@ def predict_dataframe(
     model = model.to(device)
 
     with torch.no_grad():
-        logits = model(torch.tensor(x, dtype=torch.float32).to(device))
-        probs = torch.sigmoid(logits).cpu().numpy()
+        risk_logits, tts_pred = model(torch.tensor(x, dtype=torch.float32).to(device))
+        probs = torch.sigmoid(risk_logits).cpu().numpy()
+        tts = tts_pred.cpu().numpy()
 
-    out = df.iloc[seq_len:].copy().reset_index(drop=True)
+    out = df.loc[row_idx].copy().reset_index(drop=True)
     out["stall_probability"] = probs
     out["stall_predicted"] = (probs >= threshold).astype(int)
+    out["time_to_stall_predicted_s"] = tts
+    out["time_to_stall_actual_s"] = y_tts
+    out["stall_risk_label"] = y_risk.astype(int)
+
+    out["motor_status"] = np.where(
+        probs >= 0.8,
+        "Critical",
+        np.where(probs >= threshold, "Warning", "Normal"),
+    )
     return out
