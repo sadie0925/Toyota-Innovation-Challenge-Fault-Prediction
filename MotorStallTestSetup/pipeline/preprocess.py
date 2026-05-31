@@ -15,12 +15,19 @@ from .sanitize import sanitize
 
 
 def infer_file_label(path: Path) -> str | None:
+    path = Path(path)
+    parts = {p.lower() for p in path.parts}
+    if "normal_motor_tests" in parts:
+        return "normal"
+    if "stall_motor_tests" in parts:
+        return "stalled"
+
     name = path.as_posix().lower()
     if "normal" in name:
         return "normal"
     if any(tag in name for tag in ("stalled", "abnormal", "_stall", "motor_data_stall")):
         return "stalled"
-    if name.endswith("stall.csv") or "/stall/" in name:
+    if name.endswith("stall.csv"):
         return "stalled"
     return None
 
@@ -38,7 +45,12 @@ def preprocess_file(
     clean = sanitize(raw, cfg.sanitize)
     featured = add_features(clean, cfg.feature, cfg.spike)
     labeled = label_stall_events(
-        featured, cfg.label, cfg.feature, cfg.spike, file_label=file_label
+        featured,
+        cfg.label,
+        cfg.feature,
+        cfg.spike,
+        file_label=file_label,
+        source_file=path.name,
     )
     labeled["source_file"] = path.name
     labeled["file_label"] = file_label or "unknown"

@@ -1,4 +1,4 @@
-"""Train the LSTM stall predictor."""
+"""Train dual-head LSTM (stall risk + time-to-stall)."""
 
 from __future__ import annotations
 
@@ -32,23 +32,26 @@ def train_model(
     model_dir = model_dir or MODEL_DIR
     model_dir.mkdir(parents=True, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    max_tts = cfg.label.max_lead_s
 
     model = StallLSTM(
         input_size=len(batch.feature_columns),
         hidden_size=cfg.model.hidden_size,
         num_layers=cfg.model.num_layers,
         dropout=cfg.model.dropout,
+        max_time_to_stall_s=max_tts,
     ).to(device)
 
     train_loader = make_dataloader(
-        batch.x_train, batch.y_train, cfg.model.batch_size, shuffle=True
+        batch.x_train, batch.y_risk_train, batch.y_tts_train, cfg.model.batch_size, shuffle=True
     )
     val_loader = make_dataloader(
-        batch.x_val, batch.y_val, cfg.model.batch_size, shuffle=False
+        batch.x_val, batch.y_risk_val, batch.y_tts_val, cfg.model.batch_size, shuffle=False
     )
 
-    pos_weight = _pos_weight(batch.y_train).to(device)
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    pos_weight = _pos_weight(batch.y_risk_train).to(device)
+    risk_criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    tts_criterion = nn.SmoothL1Loss(reduction="none")
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.model.learning_rate)
 
     best_val_loss = float("inf")
@@ -58,11 +61,19 @@ def train_model(
     for epoch in range(1, cfg.model.epochs + 1):
         model.train()
         train_loss = 0.0
-        for xb, yb in train_loader:
-            xb, yb = xb.to(device), yb.to(device)
+        for xb, y_risk, y_tts in train_loader:
+            xb = xb.to(device)
+            y_risk = y_risk.to(device)
+            y_tts = y_tts.to(device)
             optimizer.zero_grad()
-            logits = model(xb)
-            loss = criterion(logits, yb)
+            risk_logits, tts_pred = model(xb)
+            loss_risk = risk_criterion(risk_logits, y_risk)
+            mask = y_risk > 0.5
+            if mask.any():
+                loss_tts = tts_criterion(tts_pred[mask], y_tts[mask]).mean()
+            else:
+                loss_tts = torch.tensor(0.0, device=device)
+            loss = loss_risk + 0.5 * loss_tts
             loss.backward()
             optimizer.step()
             train_loss += loss.item() * len(xb)
@@ -71,10 +82,20 @@ def train_model(
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
-            for xb, yb in val_loader:
-                xb, yb = xb.to(device), yb.to(device)
-                logits = model(xb)
-                val_loss += criterion(logits, yb).item() * len(xb)
+            for xb, y_risk, y_tts in val_loader:
+                if len(xb) == 0:
+                    continue
+                xb = xb.to(device)
+                y_risk = y_risk.to(device)
+                y_tts = y_tts.to(device)
+                risk_logits, tts_pred = model(xb)
+                loss_risk = risk_criterion(risk_logits, y_risk)
+                mask = y_risk > 0.5
+                if mask.any():
+                    loss_tts = tts_criterion(tts_pred[mask], y_tts[mask]).mean()
+                else:
+                    loss_tts = torch.tensor(0.0, device=device)
+                val_loss += (loss_risk + 0.5 * loss_tts).item() * len(xb)
         val_loss /= max(len(batch.x_val), 1)
 
         history.append({"epoch": epoch, "train_loss": train_loss, "val_loss": val_loss})
@@ -97,7 +118,9 @@ def train_model(
         "hidden_size": cfg.model.hidden_size,
         "num_layers": cfg.model.num_layers,
         "dropout": cfg.model.dropout,
+        "max_time_to_stall_s": max_tts,
         "history": history,
+        "risk_threshold": 0.5,
     }
     with open(model_dir / "model_meta.json", "w") as f:
         json.dump(meta, f, indent=2)
