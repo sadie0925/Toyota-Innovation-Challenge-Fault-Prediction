@@ -1,0 +1,56 @@
+{
+  "train": {
+    "accuracy": 0.9435652433562257,
+    "precision": 0.8324096652626912,
+    "recall": 1.0,
+    "f1": 0.9085410113718848,
+    "confusion_matrix": [
+      [
+        8885,
+        756
+      ],
+      [
+        0,
+        3755
+      ]
+    ],
+    "classification_report": "              precision    recall  f1-score   support\n\n         0.0       1.00      0.92      0.96      9641\n         1.0       0.83      1.00      0.91      3755\n\n    accuracy                           0.94     13396\n   macro avg       0.92      0.96      0.93     13396\nweighted avg       0.95      0.94      0.94     13396\n",
+    "roc_auc": 0.9955318849493072
+  },
+  "val": {
+    "accuracy": 0.9453152211772902,
+    "precision": 0.838477366255144,
+    "recall": 1.0,
+    "f1": 0.9121432568550644,
+    "confusion_matrix": [
+      [
+        1899,
+        157
+      ],
+      [
+        0,
+        815
+      ]
+    ],
+    "classification_report": "              precision    recall  f1-score   support\n\n         0.0       1.00      0.92      0.96      2056\n         1.0       0.84      1.00      0.91       815\n\n    accuracy                           0.95      2871\n   macro avg       0.92      0.96      0.94      2871\nweighted avg       0.95      0.95      0.95      2871\n",
+    "roc_auc": 0.995362965792175
+  },
+  "test": {
+    "accuracy": 0.9366074538488331,
+    "precision": 0.8241010689990281,
+    "recall": 0.9988221436984688,
+    "f1": 0.9030883919062833,
+    "confusion_matrix": [
+      [
+        1841,
+        181
+      ],
+      [
+        1,
+        848
+      ]
+    ],
+    "classification_report": "              precision    recall  f1-score   support\n\n         0.0       1.00      0.91      0.95      2022\n         1.0       0.82      1.00      0.90       849\n\n    accuracy                           0.94      2871\n   macro avg       0.91      0.95      0.93      2871\nweighted avg       0.95      0.94      0.94      2871\n",
+    "roc_auc": 0.9948714901688029
+  }
+}
