@@ -1,0 +1,72 @@
+{
+  "best_threshold": 0.1,
+  "train": {
+    "threshold": 0.1,
+    "accuracy": 0.622684139177587,
+    "precision": 0.5038621509209744,
+    "recall": 1.0,
+    "f1": 0.670090873172659,
+    "confusion_matrix": [
+      [
+        530,
+        835
+      ],
+      [
+        0,
+        848
+      ]
+    ],
+    "classification_report": "              precision    recall  f1-score   support\n\n         0.0       1.00      0.39      0.56      1365\n         1.0       0.50      1.00      0.67       848\n\n    accuracy                           0.62      2213\n   macro avg       0.75      0.69      0.61      2213\nweighted avg       0.81      0.62      0.60      2213\n",
+    "positive_rate_actual": 0.38319024443626404,
+    "positive_rate_predicted": 0.7605061003163127,
+    "roc_auc": 0.7584801990462369,
+    "time_to_stall_mae_s": 0.8422121358947512,
+    "time_to_stall_samples": 848
+  },
+  "val": {
+    "threshold": 0.1,
+    "accuracy": 0.5907172995780591,
+    "precision": 0.4581005586592179,
+    "recall": 1.0,
+    "f1": 0.6283524904214559,
+    "confusion_matrix": [
+      [
+        116,
+        194
+      ],
+      [
+        0,
+        164
+      ]
+    ],
+    "classification_report": "              precision    recall  f1-score   support\n\n         0.0       1.00      0.37      0.54       310\n         1.0       0.46      1.00      0.63       164\n\n    accuracy                           0.59       474\n   macro avg       0.73      0.69      0.59       474\nweighted avg       0.81      0.59      0.57       474\n",
+    "positive_rate_actual": 0.3459915518760681,
+    "positive_rate_predicted": 0.7552742616033755,
+    "roc_auc": 0.7513571990558616,
+    "time_to_stall_mae_s": 1.0011673012021474,
+    "time_to_stall_samples": 164
+  },
+  "test": {
+    "threshold": 0.1,
+    "accuracy": 0.6357894736842106,
+    "precision": 0.5194444444444445,
+    "recall": 1.0,
+    "f1": 0.6837294332723949,
+    "confusion_matrix": [
+      [
+        115,
+        173
+      ],
+      [
+        0,
+        187
+      ]
+    ],
+    "classification_report": "              precision    recall  f1-score   support\n\n         0.0       1.00      0.40      0.57       288\n         1.0       0.52      1.00      0.68       187\n\n    accuracy                           0.64       475\n   macro avg       0.76      0.70      0.63       475\nweighted avg       0.81      0.64      0.62       475\n",
+    "positive_rate_actual": 0.3936842083930969,
+    "positive_rate_predicted": 0.7578947368421053,
+    "roc_auc": 0.7726530005941772,
+    "time_to_stall_mae_s": 0.9460322852121955,
+    "time_to_stall_samples": 187
+  }
+}

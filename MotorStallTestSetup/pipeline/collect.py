@@ -18,11 +18,6 @@ def collect_serial(
     output_dir: Path | None = None,
     label: str = "normal",
 ) -> Path:
-    """
-    Stream time_us,current_A from Arduino and save to CSV.
-
-    Matches the format produced by motorStallTestSetup.ino / saveValues.py.
-    """
     output_dir = output_dir or RAW_DIR
     output_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

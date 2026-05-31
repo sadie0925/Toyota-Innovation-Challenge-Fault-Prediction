@@ -10,29 +10,29 @@ from pathlib import Path
 from pipeline.config import (
     BASE_DIR,
     DEFAULT_CONFIG,
+    MODEL_DIR,
     OUTPUT_DIR,
     PipelineConfig,
+    STALL_MOTOR_TESTS_DIR,
     make_run_id,
 )
-from pipeline.data_paths import discover_motor_data_paths, pick_stall_file
-from pipeline.dataset import split_sequences_by_session
+from pipeline.dataset import split_sequences
 from pipeline.evaluate import evaluate_batch
 from pipeline.normalize import FeatureNormalizer
 from pipeline.predict import predict_dataframe
-from pipeline.preprocess import preprocess_file, preprocess_paths, save_processed
+from pipeline.preprocess import preprocess_file, preprocess_paths
 from pipeline.report import save_metrics_json, write_results_summary
-from pipeline.stall_times import load_stall_times
+from pipeline.stall_times import load_stall_annotations
 from pipeline.train import train_model
 from pipeline.visualize import plot_dashboard, plot_training_history
 
+FOCUS_STALL_FILE = STALL_MOTOR_TESTS_DIR / "motor_data_stall.csv"
+
 
 def default_data_paths() -> list[Path]:
-    paths = discover_motor_data_paths(BASE_DIR)
-    if paths:
-        return paths
-    raise FileNotFoundError(
-        "No input CSV files found. Add CSVs to normal_motor_tests/ and stall_motor_tests/."
-    )
+    if FOCUS_STALL_FILE.exists():
+        return [FOCUS_STALL_FILE]
+    raise FileNotFoundError(f"Focus file not found: {FOCUS_STALL_FILE}")
 
 
 def run_pipeline(
@@ -46,39 +46,40 @@ def run_pipeline(
 
     run_id = run_id or make_run_id()
     run_dir = OUTPUT_DIR / f"run_{run_id}"
-    from pipeline.config import MODEL_DIR
-
     model_run_dir = MODEL_DIR / f"run_{run_id}"
     run_dir.mkdir(parents=True, exist_ok=True)
     model_run_dir.mkdir(parents=True, exist_ok=True)
 
     paths = data_paths or default_data_paths()
-    stall_times, warning_window = load_stall_times(cfg.label.stall_times_path)
+    annotations, warning_window = load_stall_annotations(cfg.label.stall_times_path)
 
     print(f"Run ID: {run_id}")
     print(f"Output dir: {run_dir}")
-    print(f"Model dir: {model_run_dir}")
-    print(f"Labeling: manual stall_time, warning window = {warning_window}s")
+    print(f"Model dir:  {model_run_dir}")
+    print(f"Warning window: {warning_window}s before each stall period")
     print(f"Processing {len(paths)} file(s)...")
     for p in paths:
-        tag = f"stall@{stall_times[p.name]}s" if p.name in stall_times else "normal/all-zero"
-        print(f"  - {p.parent.name}/{p.name}  ({tag})")
+        ann = annotations.get(p.name)
+        if ann:
+            periods = ", ".join(f"{a:.1f}-{b:.1f}s" for a, b in ann.stall_periods_s)
+            print(f"  - {p.name}  stall periods: [{periods}]")
+        else:
+            print(f"  - {p.name}  (no annotation)")
 
     processed = preprocess_paths(paths, cfg)
     processed_path = run_dir / "processed_features.csv"
     processed.to_csv(processed_path, index=False)
     print(f"Saved processed features: {processed_path}")
+    print(
+        f"Labels — risk={processed['stall_risk'].sum()}, "
+        f"stall_phase={processed['stall_phase'].sum()}"
+    )
 
     feature_cols = cfg.feature.feature_columns
     normalizer = FeatureNormalizer(feature_cols)
     normalized = normalizer.fit_transform(processed)
 
-    batch = split_sequences_by_session(
-        normalized,
-        feature_cols,
-        cfg=cfg.model,
-        random_seed=cfg.random_seed,
-    )
+    batch = split_sequences(normalized, feature_cols, cfg=cfg.model, random_seed=cfg.random_seed)
     print(
         f"Sequences — train: {len(batch.x_train)}, "
         f"val: {len(batch.x_val)}, test: {len(batch.x_test)}"
@@ -92,9 +93,8 @@ def run_pipeline(
         "run_id": run_id,
         "run_dir": str(run_dir),
         "model_dir": str(model_run_dir),
-        "labeling": "manual stall_times.json",
+        "labeling": "manual stall periods in stall_times.json",
         "warning_window_s": warning_window,
-        "stall_times": stall_times,
         "processed_path": str(processed_path),
         "data_files": [str(p) for p in paths],
         "model_input": f"{cfg.model.sequence_length} samples of {feature_cols}",
@@ -118,7 +118,7 @@ def run_pipeline(
         with open(model_run_dir / "model_meta.json", "w") as f:
             json.dump(meta, f, indent=2)
 
-        predict_source = pick_stall_file(paths)
+        predict_source = paths[0]
         pred_df = predict_dataframe(
             preprocess_file(predict_source, cfg),
             cfg,
@@ -151,7 +151,7 @@ def main() -> None:
         "--data",
         nargs="*",
         type=Path,
-        help="Input CSV paths (default: normal_motor_tests/ + stall_motor_tests/)",
+        help=f"Input CSV (default: {FOCUS_STALL_FILE.name} only)",
     )
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--skip-train", action="store_true")

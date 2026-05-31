@@ -19,7 +19,6 @@ def resample_uniform(df: pd.DataFrame, hz: float) -> pd.DataFrame:
     if len(grid) == 0:
         return df.copy()
 
-    # Max aggregation preserves short current spikes that interpolation would wash out.
     bin_idx = np.clip(((df["time_s"].values - t_start) / step).astype(int), 0, len(grid) - 1)
     max_current = np.zeros(len(grid))
     counts = np.zeros(len(grid))
