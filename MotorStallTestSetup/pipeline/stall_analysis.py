@@ -1,5 +1,3 @@
-"""Data-driven calibration: stall merge cooldown, min stall duration, spike floor."""
-
 from __future__ import annotations
 
 import json
@@ -22,7 +20,6 @@ CALIBRATION_REPORT_NAME = "stall_spike_calibration.json"
 
 
 def discover_calibration_csvs(roots: list[Path]) -> list[Path]:
-    """Collect motor CSVs from normal/stall test dirs and Data 2 folders."""
     seen: set[Path] = set()
     paths: list[Path] = []
 
@@ -51,7 +48,6 @@ def discover_calibration_csvs(roots: list[Path]) -> list[Path]:
 
 
 def _annotation_gaps(stall_times_path: Path | None = None) -> list[float]:
-    """Inter-stall gaps from raw stall_times.json (before merge)."""
     path = stall_times_path or STALL_TIMES_PATH
     if not path.exists():
         return []
@@ -72,7 +68,6 @@ def _auto_stall_segments(
     df: pd.DataFrame,
     min_sustain_s: float = 0.25,
 ) -> list[tuple[float, float]]:
-    """Heuristic high-current segments for gap statistics (10 Hz native OK)."""
     if "time_s" not in df.columns:
         df = df.copy()
         df["time_s"] = (df["time_us"] - df["time_us"].iloc[0]) / 1_000_000.0
@@ -117,7 +112,6 @@ def calibrate_spike_thresholds(
     hz: float = 100.0,
     spike_cfg: SpikeConfig | None = None,
 ) -> dict:
-    """Pick min_spike_a and min_stall_duration_s from normal motor recordings."""
     spike_cfg = spike_cfg or SpikeConfig()
     window = max(int(spike_cfg.baseline_window_s * hz), 3)
 
@@ -151,7 +145,6 @@ def calibrate_spike_thresholds(
     if len(peaks) > 0:
         min_spike_a = float(max(0.008, np.percentile(peaks, 10)))
 
-    # Normal brief excursions at 100 Hz are mostly <= 0.05 s; stalls are >= ~0.3 s sustained.
     min_stall_duration_s = float(max(0.15, np.percentile(durs, 95) * 4.0))
     min_stall_duration_s = float(min(min_stall_duration_s, 0.35))
 
@@ -169,7 +162,6 @@ def calibrate_stall_merge_cooldown(
     annotation_gaps: list[float],
     stall_times_path: Path | None = None,
 ) -> dict:
-    """Cooldown = max gap to treat back-to-back stalls as one event (from labels + auto segments)."""
     auto_gaps: list[float] = []
     min_period_durations: list[float] = []
 
@@ -190,7 +182,6 @@ def calibrate_stall_merge_cooldown(
     if not all_gaps:
         recommended = 6.0
     else:
-        # Merge gaps up to the largest annotated inter-stall gap (exterior re-stalls).
         annotation_max = max(annotation_gaps) if annotation_gaps else 0.0
         short_cluster = [g for g in all_gaps if g <= max(8.0, annotation_max + 1.0)]
         recommended = float(max(annotation_max, np.percentile(short_cluster, 90)))
@@ -277,7 +268,6 @@ def save_calibration_report(
 
 
 def apply_calibration_to_config(report: dict) -> tuple[float, float, float]:
-    """Return (stall_merge_cooldown_s, min_spike_a, min_stall_duration_s)."""
     return (
         float(report["stall_merge_cooldown_s"]),
         float(report["min_spike_a"]),

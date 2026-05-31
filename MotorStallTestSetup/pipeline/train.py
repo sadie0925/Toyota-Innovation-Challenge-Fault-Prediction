@@ -1,5 +1,3 @@
-"""Train dual-head LSTM (stall risk + time-to-stall)."""
-
 from __future__ import annotations
 
 import json

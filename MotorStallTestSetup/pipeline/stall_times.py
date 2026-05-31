@@ -1,5 +1,3 @@
-"""Load manually annotated stall periods (Phase 1)."""
-
 from __future__ import annotations
 
 import json
@@ -15,7 +13,6 @@ def merge_stall_periods(
     periods: list[tuple[float, float]],
     cooldown_s: float,
 ) -> list[tuple[float, float]]:
-    """Merge periods when gap (next_start - prev_end) <= cooldown_s."""
     if not periods or cooldown_s <= 0:
         return list(periods)
 
@@ -55,10 +52,7 @@ def _parse_file_entry(value) -> FileStallAnnotation | None:
     return None
 
 
-def load_stall_annotations(
-    path: Path | None = None,
-    merge_cooldown_s: float | None = None,
-) -> tuple[dict[str, FileStallAnnotation], float]:
+def load_stall_annotations(path: Path | None = None) -> tuple[dict[str, FileStallAnnotation], float]:
     path = path or STALL_TIMES_PATH
     if not path.exists():
         return {}, 5.0
@@ -67,20 +61,24 @@ def load_stall_annotations(
         data = json.load(f)
 
     warning_window_s = float(data.get("warning_window_s", 5.0))
-    if merge_cooldown_s is None:
-        merge_cooldown_s = float(data.get("stall_merge_cooldown_s", 6.5))
-
     annotations: dict[str, FileStallAnnotation] = {}
     for name, value in data.get("files", {}).items():
         parsed = _parse_file_entry(value)
         if parsed:
-            merged = merge_stall_periods(parsed.stall_periods_s, merge_cooldown_s)
-            annotations[name] = FileStallAnnotation(stall_periods_s=merged)
+            annotations[name] = parsed
     return annotations, warning_window_s
 
 
+def load_stall_merge_cooldown_s(path: Path | None = None, default: float = 6.5) -> float:
+    path = path or STALL_TIMES_PATH
+    if not path.exists():
+        return default
+    with open(path) as f:
+        data = json.load(f)
+    return float(data.get("stall_merge_cooldown_s", default))
+
+
 def load_stall_times(path: Path | None = None) -> tuple[dict[str, float], float]:
-    """Legacy helper — first stall period start per file."""
     annotations, warning = load_stall_annotations(path)
     times = {name: ann.stall_periods_s[0][0] for name, ann in annotations.items()}
     return times, warning

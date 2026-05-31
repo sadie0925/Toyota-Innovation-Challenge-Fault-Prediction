@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-"""Analyze stall gaps and spike thresholds from all available motor CSVs."""
-
 from __future__ import annotations
 
 import argparse

@@ -1,5 +1,3 @@
-"""End-to-end preprocessing: sanitize → features → labels → normalize."""
-
 from __future__ import annotations
 
 from pathlib import Path

@@ -1,5 +1,3 @@
-"""Plots for stall risk, time-to-stall, and training history."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,13 +10,15 @@ def plot_dashboard(
     df: pd.DataFrame,
     output_path: str | Path,
     title: str = "Motor Stall — Predictive Maintenance Dashboard",
+    full_telemetry_df: pd.DataFrame | None = None,
 ) -> None:
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     fig, axes = plt.subplots(4, 1, figsize=(14, 10), sharex=True)
 
-    axes[0].plot(df["time_s"], df["current_a"], color="#2563eb", linewidth=0.8)
+    tel = full_telemetry_df if full_telemetry_df is not None else df
+    axes[0].plot(tel["time_s"], tel["current_a"], color="#2563eb", linewidth=0.8)
     if "stall_onset_time_s" in df.columns and (df["stall_onset_time_s"] >= 0).any():
         axes[0].axvline(
             df["stall_onset_time_s"].iloc[0],

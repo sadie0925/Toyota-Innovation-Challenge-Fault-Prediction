@@ -1,5 +1,3 @@
-"""Evaluate stall risk + time-to-stall on held-out sessions."""
-
 from __future__ import annotations
 
 import json
@@ -24,7 +22,6 @@ from .model import StallLSTM
 
 
 def find_best_threshold(probs: np.ndarray, y: np.ndarray) -> float:
-    """Pick threshold that maximizes F1 on validation data."""
     if len(y) == 0 or y.sum() == 0:
         return 0.5
     best_t, best_f1 = 0.5, -1.0

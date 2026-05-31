@@ -1,5 +1,3 @@
-"""Pipeline configuration for single-motor stall prediction."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -44,26 +42,26 @@ class SanitizeConfig:
 @dataclass
 class SpikeConfig:
     spike_multiplier: float = 3.0
-    # Calibrated from normal_motor_tests (scripts/analyze_stall_gaps_and_spikes.py)
     min_spike_a: float = 0.025
     baseline_window_s: float = 0.5
-    # Excursions at or above this duration are stall-like, not anomaly spikes
     min_stall_duration_s: float = 0.16
 
 
 @dataclass
 class LabelConfig:
     warning_window_s: float = 5.0
-    # Gaps between stall periods <= this are merged into one stall chunk
-    stall_merge_cooldown_s: float = 6.5
     stall_times_path: Path = field(default_factory=lambda: STALL_TIMES_PATH)
+
+
+@dataclass
+class InferenceConfig:
+    stall_merge_cooldown_s: float = 6.5
 
 
 @dataclass
 class FeatureConfig:
     resample_hz: float = 100.0
     rolling_window_s: float = 0.2
-    # LSTM input: current history only (timestamps used for ordering/labels only)
     model_input_column: str = "current_a"
     feature_columns: list[str] = field(
         default_factory=lambda: ["current_a"]
@@ -89,6 +87,7 @@ class PipelineConfig:
     sanitize: SanitizeConfig = field(default_factory=SanitizeConfig)
     spike: SpikeConfig = field(default_factory=SpikeConfig)
     label: LabelConfig = field(default_factory=LabelConfig)
+    inference: InferenceConfig = field(default_factory=InferenceConfig)
     feature: FeatureConfig = field(default_factory=FeatureConfig)
     model: ModelConfig = field(default_factory=ModelConfig)
     random_seed: int = 42
