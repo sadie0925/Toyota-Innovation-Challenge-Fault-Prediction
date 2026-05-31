@@ -1,0 +1,19 @@
+.DS_Store
+
+# Python
+.venv/
+**/.venv/
+__pycache__/
+*.pyc
+
+# Generated ML artifacts
+MotorStallTestSetup/data/processed/
+MotorStallTestSetup/data/models/
+MotorStallTestSetup/data/outputs/
+MotorStallTestSetup_backup/
+
+# Large / data files (keep stall_times.json and source CSVs in motor_*_tests if needed)
+*.xz
+*.pth
+*.pkl
+*.npz
